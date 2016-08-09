@@ -17,8 +17,11 @@
 
 package org.pooledtimeseries;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
@@ -65,10 +68,16 @@ public class MeanChiSquareDistanceCalculation {
 
             for (String video: videoPaths) {
                 ArrayList<double[][]> multiSeries = new ArrayList<double[][]>();
+                String videoName = new File(video).getName();
+                long startIoTime = System.currentTimeMillis();
                 
-                multiSeries.add(PoT.loadTimeSeries(getInputStreamFromHDFS(video + ".of.txt")));
-                multiSeries.add(PoT.loadTimeSeries(getInputStreamFromHDFS(video + ".hog.txt")));
-                
+                multiSeries.add(PoT.loadTimeSeries(Paths.get(
+                		new File("./video-metric-bak.tgz/video-metric-bak/" + videoName + ".of.txt").getAbsolutePath() )));
+                multiSeries.add(PoT.loadTimeSeries(Paths.get(
+                		new File("./video-metric-bak.tgz/video-metric-bak/" + videoName + ".hog.txt").getAbsolutePath() )));
+
+                LOG.info("Read both series in - " + (System.currentTimeMillis() - startIoTime));
+
                 FeatureVector fv = new FeatureVector();
                 for (int i = 0; i < multiSeries.size(); i++) {
                     fv.feature.add(PoT.computeFeaturesFromSeries(multiSeries.get(i), tws, 1));
@@ -78,7 +87,7 @@ public class MeanChiSquareDistanceCalculation {
                 fvList.add(fv);
             }
             
-            LOG.info("Loaded Time Series for pair - " + value);
+            LOG.info("Loaded Time Series for pair in - " + (System.currentTimeMillis() - startTime));
 
             for (int i = 0; i < fvList.get(0).numDim(); i++) {
                 context.write(new IntWritable(i), new DoubleWritable(
@@ -89,7 +98,7 @@ public class MeanChiSquareDistanceCalculation {
                 ));
             }
             
-            LOG.info("Complated processing pair - " + value);
+            LOG.info("Completed processing pair - " + value);
             LOG.info("Time taken to complete job - " + (System.currentTimeMillis() - startTime));
         }
     }
@@ -112,23 +121,25 @@ public class MeanChiSquareDistanceCalculation {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
         Configuration baseConf = new Configuration();
-	baseConf.set("mapreduce.job.maps", "96");
-	baseConf.set("mapred.tasktracker.map.tasks.maximum", "96");
+        baseConf.set("mapreduce.job.maps", "96");
+        baseConf.set("mapred.tasktracker.map.tasks.maximum", "96");
         
-	JobConf conf = new JobConf();
+        JobConf conf = new JobConf();
         System.out.println("Before Map:"+ conf.getNumMapTasks());
         conf.setNumMapTasks(96);
         System.out.println("After Map:"+ conf.getNumMapTasks());
 
-	Job job = Job.getInstance(baseConf);
+        Job job = Job.getInstance(baseConf);
         job.setJarByClass(MeanChiSquareDistanceCalculation.class);
 	
         job.setJobName("mean_chi_square_calculation");
-	System.out.println("Job ID" + job.getJobID());
-	System.out.println("Track:" + baseConf.get("mapred.job.tracker"));
+        System.out.println("Job ID" + job.getJobID());
+        System.out.println("Track:" + baseConf.get("mapred.job.tracker"));
         System.out.println("Job Name"+job.getJobName());
         System.out.println(baseConf.get("mapreduce.job.maps"));
-
+        job.addCacheArchive(new URI("/user/pts/video-metric-bak.tgz"));
+        System.out.println("Cached video-metric-bak.tgz");
+        
         job.setMapOutputKeyClass(IntWritable.class);
         job.setMapOutputValueClass(DoubleWritable.class);
         job.setOutputKeyClass(IntWritable.class);
