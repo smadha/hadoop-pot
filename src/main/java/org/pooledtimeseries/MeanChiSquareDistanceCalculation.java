@@ -38,6 +38,7 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.opencv.core.Core;
+import org.pooledtimeseries.util.RedisUtil;
 
 public class MeanChiSquareDistanceCalculation {
 	private static final Logger LOG = Logger.getLogger(MeanChiSquareDistanceCalculation.class.getName());
@@ -64,21 +65,28 @@ public class MeanChiSquareDistanceCalculation {
                 return;
 
             for (String video: videoPaths) {
-                ArrayList<double[][]> multiSeries = new ArrayList<double[][]>();
-                
-                long startIoTime = System.currentTimeMillis();
-                multiSeries.add(PoT.loadTimeSeries(getInputStreamFromHDFS(video + ".of.txt")));
-                multiSeries.add(PoT.loadTimeSeries(getInputStreamFromHDFS(video + ".hog.txt")));
-                
-                LOG.info("Read both series in - " + (System.currentTimeMillis() - startIoTime));
-                
-                FeatureVector fv = new FeatureVector();
-                for (int i = 0; i < multiSeries.size(); i++) {
-                    fv.feature.add(PoT.computeFeaturesFromSeries(multiSeries.get(i), tws, 1));
-                    fv.feature.add(PoT.computeFeaturesFromSeries(multiSeries.get(i), tws, 2));
-                    fv.feature.add(PoT.computeFeaturesFromSeries(multiSeries.get(i), tws, 5));
-                }
-                fvList.add(fv);
+            	long startIoTime = System.currentTimeMillis();
+            	Object cachedFeatureVec = RedisUtil.getObjectFromRedis(video);
+            	if (cachedFeatureVec != null){
+            		fvList.add((FeatureVector) cachedFeatureVec);
+            		LOG.info("Read both series from cache in - " + (System.currentTimeMillis() - startIoTime));
+				} else {
+					ArrayList<double[][]> multiSeries = new ArrayList<double[][]>();
+
+					multiSeries.add(PoT.loadTimeSeries(getInputStreamFromHDFS(video + ".of.txt")));
+					multiSeries.add(PoT.loadTimeSeries(getInputStreamFromHDFS(video + ".hog.txt")));
+
+					LOG.info("Read both series in - " + (System.currentTimeMillis() - startIoTime));
+
+					FeatureVector fv = new FeatureVector();
+					for (int i = 0; i < multiSeries.size(); i++) {
+						fv.feature.add(PoT.computeFeaturesFromSeries(multiSeries.get(i), tws, 1));
+						fv.feature.add(PoT.computeFeaturesFromSeries(multiSeries.get(i), tws, 2));
+						fv.feature.add(PoT.computeFeaturesFromSeries(multiSeries.get(i), tws, 5));
+					}
+					RedisUtil.setObjectInRedisAsync(video,fv);
+					fvList.add(fv);
+				}
             }
             
             LOG.info("Loaded Time Series for pair in - " + (System.currentTimeMillis() - startTime));
