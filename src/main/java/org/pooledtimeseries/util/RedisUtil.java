@@ -23,13 +23,8 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.pooledtimeseries.FeatureVector;
-import org.pooledtimeseries.PoT;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -47,36 +42,14 @@ public class RedisUtil {
 	private static final Logger LOG = Logger.getLogger(RedisUtil.class.getName());
 
 	public static void main(String[] args) throws Exception {
-
-		getKeyRedis("key".getBytes());
-		LOG.fine("Connected to Redis\n");
-
-		ArrayList<double[]> tws = PoT.getTemporalWindows(4);
-
-		final String video = "/Users/madhav/Downloads/ht_video_pot_test_set_vector/01091b9db35e6b57e9b2f9e41e67afd9_1-48988ee434340f9c61ba35ff26bf3b.mp4";
-		ArrayList<double[][]> multiSeries = new ArrayList<double[][]>();
-
-		multiSeries.add(PoT.loadTimeSeries(Paths.get(video + ".of.txt")));
-		multiSeries.add(PoT.loadTimeSeries(Paths.get(video + ".hog.txt")));
 		long start = System.currentTimeMillis();
-		final FeatureVector fv = new FeatureVector();
-		for (int i = 0; i < multiSeries.size(); i++) {
-			fv.feature.add(PoT.computeFeaturesFromSeries(multiSeries.get(i), tws, 1));
-			fv.feature.add(PoT.computeFeaturesFromSeries(multiSeries.get(i), tws, 2));
-			fv.feature.add(PoT.computeFeaturesFromSeries(multiSeries.get(i), tws, 5));
-		}
-		LOG.fine("Time taken computing FeatureVector - " + (System.currentTimeMillis() - start));
+		setObjectInRedis("key","value");
+		LOG.info("Set test key in Redis - " + (System.currentTimeMillis() - start));
 		
 		start = System.currentTimeMillis();
-		setObjectInRedisAsync(video,fv);
-		LOG.info("Time taken storing FeatureVector - " + (System.currentTimeMillis() - start));
+		LOG.info(getObjectFromRedis("key").toString());
+		LOG.info("Get test key in Redis - " + (System.currentTimeMillis() - start));
 		
-		start = System.currentTimeMillis();
-		Object object = getObjectFromRedis(video);
-
-		LOG.fine("" + ((FeatureVector) object).feature.size());
-		LOG.info("Time taken retreiving FeatureVector - " + (System.currentTimeMillis() - start));
-		getKeyRedis("key".getBytes());
 		redisPool.destroy();
 	}
 	
