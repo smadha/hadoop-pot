@@ -87,7 +87,7 @@ public class SimilarityCalculation {
 			
 			String[] videoPaths = ReadSeqFileUtil.getFileNames(key);
 
-			List<FeatureVector> fvList = ReadSeqFileUtil.computeFeatureFromSeries(value);
+			List<FeatureVector> fvList = ReadSeqFileUtil.computeFeatureFromSeries(key, value);
 			LOG.info("Loaded Time Series for pair in - " + (System.currentTimeMillis() - startTime));
 			
 			double similarity = PoT.kernelDistance(fvList.get(0), fvList.get(1), meanDists);

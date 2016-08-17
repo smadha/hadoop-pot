@@ -60,7 +60,7 @@ public class MeanChiSquareDistanceCalculation {
             if (videoFiles[0].equals(videoFiles[1]))
                 return;
             
-            List<FeatureVector> fvList = ReadSeqFileUtil.computeFeatureFromSeries(value);
+            List<FeatureVector> fvList = ReadSeqFileUtil.computeFeatureFromSeries(key, value);
             
             LOG.info("Loaded Time Series for pair in - " + (System.currentTimeMillis() - startTime));
 
