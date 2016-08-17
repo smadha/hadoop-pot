@@ -56,7 +56,7 @@ public class ReadSeqFileUtil {
 					fv.feature.add(PoT.computeFeaturesFromSeries(multiSeries.get(i), tws, 2));
 					fv.feature.add(PoT.computeFeaturesFromSeries(multiSeries.get(i), tws, 5));
 				}
-				RedisUtil.setObjectInRedisAsync(video,fv);
+				RedisUtil.setObjectInRedisAsync(videoName[index],fv);
 				fvList.add(fv);
 			}
 		}
