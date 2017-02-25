@@ -47,10 +47,18 @@ with open(path_to_sim_mat) as f:
     videos = f.readline().strip().split(",")[1:]
 
 
-# List of all categories, last 7th word is category by naming convention
+# List of all categories, last 7th word is category by naming convention in HMDB
+
+def get_cat(video):
+    return video.split("_")[-7]
+#For HT data set image tagged evaluation
+#result = json.load(open("result.txt"))
+#     key = video[:-3]+"jpg"
+#     return result.get(key,["DEF"])[0].split(",")[0]
+    
 video_categories = []
 for vid in videos:
-    video_categories.append(vid.split("_")[-7])
+    video_categories.append( get_cat(vid) )
 
 
 # load data from formatted_similarity_calc.csv
@@ -63,8 +71,8 @@ data = np.genfromtxt(path_to_sim_mat,
 
 ## add matrix with it's transpose to fill lower half  
 data = np.triu(data).T + np.triu(data)  
-## Diagonal is also added to itself hence resetting it to 1 
-np.fill_diagonal(data, 1)
+## Setting diagonal to 0 so video is not evaluated against itself 
+np.fill_diagonal(data, 0)
 
 print "Data loaded"
 
